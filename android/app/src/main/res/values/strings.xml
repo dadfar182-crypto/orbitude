@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Orbitude</string>
+    <string name="title_activity_main">Orbitude</string>
+    <string name="package_name">com.orbitude.app</string>
+    <string name="custom_url_scheme">com.orbitude.app</string>
+</resources>

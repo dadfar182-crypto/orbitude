@@ -1,0 +1,12 @@
+{
+  "appId": "com.orbitude.app",
+  "appName": "Orbitude",
+  "webDir": "www",
+  "backgroundColor": "#0b0920",
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "backgroundColor": "#0b0920"
+  }
+}

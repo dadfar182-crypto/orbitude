@@ -1,0 +1,25 @@
+{
+  "name": "orbitude",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orbitude: your place in the universe, live. Web app plus iPhone and Android builds via Capacitor.",
+  "scripts": {
+    "serve": "npx --yes http-server www -p 8080 -c-1",
+    "add:android": "npx cap add android && npm run icons:android",
+    "add:ios": "npx cap add ios && npm run icons:ios",
+    "sync": "npx cap sync",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios",
+    "icons:android": "npx capacitor-assets generate --android --iconBackgroundColor \"#0b0920\" --splashBackgroundColor \"#0b0920\"",
+    "icons:ios": "npx capacitor-assets generate --ios --iconBackgroundColor \"#0b0920\" --splashBackgroundColor \"#0b0920\""
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2"
+  }
+}

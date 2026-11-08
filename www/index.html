@@ -1,0 +1,2005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0920">
+<meta name="description" content="Your place in the universe, live: a 3D globe lit by the real Sun, the Sun, Moon and planets in your sky, the solar system and the Milky Way.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orbitude">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Orbitude</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+
+</style>
+<style>
+/* Layout: an observatory console. A live 3D instrument on the left, your nested address on the right, the sky table below. */
+:root {
+  --void: #080a16;
+  --panel: #10132a;
+  --panel-2: #161a36;
+  --line: #232948;
+  --ink: #e9e7f2;
+  --dim: #8d90b2;
+  --sol: #f3b649;
+  --terra: #72b6ff;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--void); color: var(--ink); }
+body {
+  font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 40px;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 32px; }
+.brand { min-width: 0; }
+.brand h1 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 6vw, 64px); line-height: 0.95; margin: 0; letter-spacing: -0.01em; }
+.brand h1 em { color: var(--sol); font-style: italic; }
+.brand p { margin: 8px 0 0; color: var(--dim); max-width: 52ch; }
+
+.where { display: flex; flex-direction: column; gap: 8px; min-width: 0; width: min(100%, 440px); }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.utc { font-family: var(--mono); font-size: 19px; font-variant-numeric: tabular-nums; }
+.search { position: relative; }
+.search-row { display: flex; gap: 8px; }
+input, button, select { font: inherit; color: var(--ink); }
+#q {
+  flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; font-size: 15px;
+}
+#q::placeholder { color: var(--dim); }
+.btn {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  font-size: 13px; color: var(--ink); white-space: nowrap;
+}
+.btn:hover { border-color: var(--dim); }
+input:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--sol); outline-offset: 2px; }
+.results {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 4px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; max-height: 340px; overflow-y: auto;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+.results li { padding: 8px 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.results li[aria-selected="true"], .results li:hover { background: var(--line); }
+.results .rn { font-weight: 500; }
+.results .rs { color: var(--dim); font-size: 12px; text-align: right; }
+.results .empty { color: var(--dim); cursor: default; }
+.here { font-size: 13px; color: var(--dim); }
+.here b { color: var(--ink); font-weight: 500; }
+.msg { font-size: 12px; color: var(--sol); min-height: 1em; margin: 0; }
+details.coords summary { cursor: pointer; font-size: 12px; color: var(--dim); }
+details.coords .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+details.coords input { width: 110px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-family: var(--mono); font-size: 13px; }
+
+main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.viewer { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 13px 10px; cursor: pointer;
+  color: var(--dim); font-size: 14px; font-weight: 500; margin-bottom: -1px; white-space: nowrap;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--sol); }
+.stage {
+  position: relative; width: 100%; max-width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
+  background: #05060f; border: 1px solid var(--line); border-radius: 12px; touch-action: none;
+}
+@media (min-width: 901px) { .stage { aspect-ratio: 5 / 4.6; } }
+#cv { display: block; width: 100%; height: 100%; cursor: grab; }
+#cv:active { cursor: grabbing; }
+#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl {
+  position: absolute; left: 0; top: 0; white-space: nowrap; font-family: var(--mono); font-size: 11px; color: #d7d9ef;
+  text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8); will-change: transform;
+}
+.lbl.you { color: #fff; font-size: 12px; font-weight: 500; }
+.lbl.sol { color: var(--sol); }
+.lbl.dim { color: #7b7f9f; }
+.lbl.big { font-size: 12px; color: #ffd9a0; }
+.hud {
+  position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; justify-content: space-between; gap: 10px;
+  align-items: flex-end; pointer-events: none; font-family: var(--mono); font-size: 11px; color: var(--dim);
+}
+.hud span { text-shadow: 0 1px 3px #000; }
+.hud .btn { pointer-events: auto; font-size: 11px; padding: 5px 9px; background: rgba(16, 19, 42, 0.85); font-family: var(--mono); }
+#map { position: absolute; inset: 0; z-index: 2; background: #0b0d1c; }
+.mapnote {
+  position: absolute; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(86%, 380px);
+  background: rgba(16, 19, 42, 0.94); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; color: var(--ink); font-size: 14px;
+}
+.mapnote b { display: block; margin-bottom: 4px; }
+.mapnote p { margin: 0; color: var(--dim); }
+.hud { z-index: 5; }
+.hud-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.you-pin span { position: absolute; inset: 0; border-radius: 50%; background: #fff; border: 3px solid var(--sol); box-shadow: 0 0 0 4px rgba(243, 182, 73, 0.35), 0 2px 8px rgba(0, 0, 0, 0.6); }
+.leaflet-container { font-family: var(--body); background: #0b0d1c; }
+.leaflet-bar a, .leaflet-bar a:hover { background: rgba(16, 19, 42, 0.9); color: var(--ink); border-bottom-color: var(--line); width: 34px; height: 34px; line-height: 34px; font-size: 18px; }
+.leaflet-bar a:hover { background: var(--line); }
+.leaflet-bar { border: 1px solid var(--line) !important; box-shadow: none !important; }
+.leaflet-top.leaflet-right { top: 8px; right: 8px; }
+.leaflet-control-attribution { background: rgba(8, 10, 22, 0.75) !important; color: #b9bbd6 !important; font-size: 10px; max-width: calc(100% - 70px); border-radius: 0 0 6px 0; }
+.leaflet-top.leaflet-left .leaflet-control-attribution { margin: 0 !important; }
+.leaflet-control-attribution a { color: #d7d9ef !important; }
+.leaflet-control-scale { margin-bottom: 44px !important; }
+.leaflet-control-scale-line { background: rgba(8, 10, 22, 0.7); color: var(--ink); border-color: var(--ink); font-family: var(--mono); font-size: 10px; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--dim); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  background: var(--panel); border: 0; border-right: 1px solid var(--line); padding: 7px 11px; cursor: pointer;
+  font-family: var(--mono); font-size: 12px; color: var(--dim);
+}
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--sol); color: #1a1204; }
+.simtime { font-family: var(--mono); font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.simtime.ahead { color: var(--sol); }
+#scope[hidden] { display: none !important; }
+.caption { color: var(--dim); margin: 0; max-width: 64ch; }
+.caption b { color: var(--ink); font-weight: 500; }
+
+.address { min-width: 0; }
+.address h2, .bodies h2 { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 0 0 4px; text-wrap: balance; }
+.address > p { margin: 0 0 18px; color: var(--dim); }
+.levels { list-style: none; margin: 0; padding: 0; position: relative; }
+.levels::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 1px; background: var(--line); }
+.lvl { position: relative; padding: 0 0 22px 30px; }
+.lvl:last-child { padding-bottom: 0; }
+.lvl::before { content: ""; position: absolute; left: 0; top: 5px; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line); background: var(--void); }
+.lvl:nth-child(1)::before { background: var(--ink); width: 9px; height: 9px; left: 3px; top: 8px; border: 0; }
+.lvl:nth-child(2)::before { background: var(--terra); border-color: var(--terra); }
+.lvl:nth-child(3)::before { background: var(--sol); border-color: var(--sol); box-shadow: 0 0 12px var(--sol); }
+.lvl:nth-child(4)::before { background: conic-gradient(from 30deg, #b9a7ff, #3b3f78, #b9a7ff, #3b3f78, #b9a7ff); }
+.lvl:nth-child(5)::before { background: radial-gradient(circle, #ffb59b, #5b3d6f 70%); }
+.lvl h3 { margin: 2px 0 2px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.lvl .sub { color: var(--dim); font-size: 13px; margin: 0 0 8px; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 14px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.trip { margin-top: 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 7px 10px; background: var(--panel); border-radius: 6px; font-size: 12px; }
+.trip span:first-child { color: var(--dim); }
+.trip span:last-child { font-family: var(--mono); color: var(--sol); font-variant-numeric: tabular-nums; }
+
+.bodies { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.bodies-head p { margin: 4px 0 0; color: var(--dim); max-width: 78ch; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 740px; }
+th { text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); font-weight: 400; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.name { font-family: var(--body); font-weight: 500; }
+td.name small { color: var(--dim); font-weight: 400; margin-left: 6px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 9px; vertical-align: -1px; }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 11px; }
+.pill.up { background: rgba(243, 182, 73, 0.16); color: var(--sol); }
+.pill.down { background: rgba(141, 144, 178, 0.14); color: var(--dim); }
+tr.below td.dir, tr.below td.nx { color: var(--dim); }
+
+footer { color: var(--dim); font-size: 12px; border-top: 1px solid var(--line); padding-top: 14px; max-width: 92ch; }
+footer p { margin: 0 0 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Orbi<em>tude</em></h1>
+      <p>Your place in the universe, live. Where you are, what is in your sky, and how fast you are moving through space. Every number and position is calculated from the clock.</p>
+    </div>
+    <div class="where">
+      <div><span class="label">Coordinated Universal Time</span> <span class="utc" id="utc">--</span></div>
+      <div class="search">
+        <div class="search-row">
+          <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search any city, state or country" aria-label="Search for your city, state or country" role="combobox" aria-expanded="false" aria-controls="results">
+          <button class="btn" id="locate" type="button">Use my location</button>
+        </div>
+        <ul class="results" id="results" role="listbox" hidden></ul>
+      </div>
+      <div class="here">You are in <b id="here">--</b></div>
+      <p class="msg" id="msg"></p>
+      <details class="coords">
+        <summary>Enter exact coordinates</summary>
+        <div class="row">
+          <input type="number" id="lat" step="0.0001" min="-90" max="90" aria-label="Latitude" placeholder="Latitude">
+          <input type="number" id="lon" step="0.0001" min="-180" max="180" aria-label="Longitude" placeholder="Longitude">
+          <button class="btn" id="setc" type="button">Set</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <main>
+    <section class="viewer" aria-label="Live 3D view">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-view="earth" aria-selected="true">Earth</button>
+        <button class="tab" role="tab" data-view="map" aria-selected="false">Close-up</button>
+        <button class="tab" role="tab" data-view="sky" aria-selected="false">Your sky</button>
+        <button class="tab" role="tab" data-view="solar" aria-selected="false">Solar System</button>
+        <button class="tab" role="tab" data-view="galaxy" aria-selected="false">Milky Way</button>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="Interactive 3D view of your position"></canvas>
+        <div id="labels"></div>
+        <div id="map" hidden></div>
+        <div class="mapnote" id="mapnote" hidden></div>
+        <div class="hud"><span id="hint">Drag to turn · pinch or scroll to zoom</span><span class="hud-btns"><button class="btn" id="maplabels" type="button" aria-pressed="true" hidden>Labels on</button><button class="btn" id="zoomin" type="button">Zoom to street level</button><button class="btn" id="recenter" type="button">Re-center</button></span></div>
+      </div>
+      <div class="controls">
+        <div class="seg" id="speeds" aria-label="Time speed">
+          <button data-speed="1" aria-pressed="true">Live</button>
+          <button data-speed="3600" aria-pressed="false">1 hr/s</button>
+          <button data-speed="86400" aria-pressed="false">1 day/s</button>
+          <button data-speed="2592000" aria-pressed="false">1 mo/s</button>
+          <button data-speed="now" aria-pressed="false">Now</button>
+        </div>
+        <div class="seg" id="scope" aria-label="Planets shown" hidden>
+          <button data-scope="inner" aria-pressed="true">Inner</button>
+          <button data-scope="all" aria-pressed="false">All planets</button>
+        </div>
+      </div>
+      <div class="simtime" id="simtime">Showing the present moment</div>
+      <p class="caption" id="caption"></p>
+    </section>
+
+    <aside class="address" aria-label="Your cosmic address">
+      <h2>Your address, from the ground up</h2>
+      <p>Each line sits inside the one below it. Every level carries you along at its own speed.</p>
+      <ol class="levels">
+        <li class="lvl">
+          <h3 id="a-place">Your spot</h3>
+          <p class="sub" id="a-place-sub">--</p>
+          <dl class="kv">
+            <dt>Local solar time</dt><dd id="a-solar">--</dd>
+            <dt>Sun above horizon</dt><dd id="a-alt">--</dd>
+            <dt>Spin speed (Earth's rotation)</dt><dd id="a-spin">--</dd>
+          </dl>
+          <div class="trip"><span>Carried by Earth's spin since you opened this</span><span id="t-spin">0 km</span></div>
+        </li>
+        <li class="lvl">
+          <h3>Earth, third planet</h3>
+          <p class="sub">Orbiting the Sun once every 365.256 days</p>
+          <dl class="kv">
+            <dt>Distance from Sun</dt><dd id="a-dist">--</dd>
+            <dt>Sunlight reaching you left the Sun</dt><dd id="a-light">--</dd>
+            <dt>Orbital speed</dt><dd id="a-orb">--</dd>
+            <dt>Heliocentric longitude</dt><dd id="a-lon">--</dd>
+            <dt>Perihelion (closest to Sun)</dt><dd id="a-peri">--</dd>
+          </dl>
+          <div class="trip"><span>Travelled around the Sun since you opened this</span><span id="t-orb">0 km</span></div>
+        </li>
+        <li class="lvl">
+          <h3>The Sun, in the Orion Spur</h3>
+          <p class="sub">Between the Sagittarius and Perseus arms of the Milky Way</p>
+          <dl class="kv">
+            <dt>Distance to galactic center</dt><dd>≈ 26,700 light-years</dd>
+            <dt>Orbital speed around the center</dt><dd>≈ 230 km/s</dd>
+            <dt>One galactic orbit</dt><dd>≈ 230 million years</dd>
+            <dt>Height above the galactic plane</dt><dd>≈ 66 light-years</dd>
+          </dl>
+          <div class="trip"><span>Travelled around the Milky Way since you opened this</span><span id="t-gal">0 km</span></div>
+        </li>
+        <li class="lvl">
+          <h3>Milky Way, in the Local Group</h3>
+          <p class="sub">About 80 galaxies bound together by gravity</p>
+          <dl class="kv">
+            <dt>Nearest large neighbor</dt><dd>Andromeda, 2.5 million ly</dd>
+            <dt>Closing speed toward Andromeda</dt><dd>≈ 110 km/s</dd>
+            <dt>Expected merger</dt><dd>≈ 4.5 billion years</dd>
+          </dl>
+          <div class="trip"><span>Closer to Andromeda since you opened this</span><span id="t-and">0 km</span></div>
+        </li>
+        <li class="lvl">
+          <h3>Laniakea Supercluster, observable universe</h3>
+          <p class="sub">Measured against the cosmic microwave background, the afterglow of the Big Bang</p>
+          <dl class="kv">
+            <dt>Our speed through the background</dt><dd>369.8 km/s</dd>
+            <dt>Heading toward</dt><dd>Crater constellation</dd>
+            <dt>Age of the universe</dt><dd>13.8 billion years</dd>
+          </dl>
+          <div class="trip"><span>Distance moved through the cosmos since you opened this</span><span id="t-cmb">0 km</span></div>
+        </li>
+      </ol>
+    </aside>
+  </main>
+
+  <section class="bodies" aria-label="Sun, Moon and planets from your location">
+    <div class="bodies-head">
+      <h2>The Sun, Moon and planets from where you stand</h2>
+      <p id="bodies-sub">--</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Body</th><th>Now</th><th>Where to look</th><th>Distance from you</th><th>Its light takes</th><th>Next</th></tr></thead>
+        <tbody id="bodies"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Planet positions use NASA JPL's approximate Keplerian orbital elements (Standish), accurate to a fraction of a degree for 1800–2050. The Moon uses the Astronomical Almanac's low-precision series (about 0.3°). Sun position and sidereal time follow standard almanac formulas. Coastlines and borders: Natural Earth (public domain) via world-atlas. Places and region names: GeoNames (geonames.org), licensed under CC BY 4.0, via all-the-cities and cities.json. 3D engine: three.js (MIT). Galactic figures are current published estimates; the Milky Way model is a schematic of the four main arms. Planet sizes in the 3D views are enlarged so you can see them. Close-up imagery: Esri World Imagery (Esri, Maxar, Earthstar Geographics, and the GIS User Community); map engine: Leaflet (BSD-2-Clause).</p>
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script src="three.min.js"></script>
+<script src="OrbitControls.js"></script>
+<script src="leaflet.js"></script>
+<script src="geo-data.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  const AU_KM = 149597870.7, C_KMS = 299792.458;
+  const G = window.GEO;
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ================= places ================= */
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const PLACES = [];
+  const countryBest = {};
+  G.cities.forEach(([n, s, cc, lat, lon, pop], i) => {
+    const st = s >= 0 ? G.states[s][0] : "";
+    const sub = [st, G.countries[cc] || cc].filter(Boolean).join(", ");
+    PLACES.push({ name: n, sub, label: `${n}, ${sub}`, lat, lon, pop, kind: 0 });
+    if (countryBest[cc] === undefined) countryBest[cc] = i;
+  });
+  G.stateEntries.forEach(([k, ci, la, lo]) => {
+    const [sn, cc] = G.states[k];
+    const c = ci >= 0 ? G.cities[ci] : null;
+    PLACES.push({
+      name: sn, sub: `Region of ${G.countries[cc] || cc}${c ? " · centered on " + c[0] : ""}`,
+      label: c ? `${c[0]}, ${sn}, ${G.countries[cc] || cc}` : `${sn}, ${G.countries[cc] || cc}`,
+      lat: c ? c[3] : la, lon: c ? c[4] : lo, pop: (c ? c[5] : 2e5) * 1.2, kind: 1
+    });
+  });
+  Object.entries(countryBest).forEach(([cc, i]) => {
+    const c = G.cities[i];
+    PLACES.push({ name: G.countries[cc] || cc, sub: `Country · centered on ${c[0]}`, label: `${c[0]}, ${G.countries[cc] || cc}`, lat: c[3], lon: c[4], pop: c[5] * 1.5, kind: 2 });
+  });
+  PLACES.forEach(p => { p.k = norm(p.name); p.full = norm(p.name + " " + p.sub); p.words = p.k.split(" "); p.lp = Math.log10(p.pop + 10); });
+
+  function search(q) {
+    const toks = norm(q).split(" ").filter(Boolean);
+    if (!toks.length) return [];
+    const whole = toks.join(" "), first = toks[0], rest = toks.slice(1);
+    const res = [];
+    for (const p of PLACES) {
+      let sc;
+      if (p.k === whole) sc = 5;
+      else if (p.k.startsWith(whole)) sc = 4;
+      else if (p.k.startsWith(first)) sc = 3;
+      else if (p.words.some(w => w.startsWith(first))) sc = 2;
+      else if (first.length > 2 && p.full.includes(first)) sc = 1;
+      else continue;
+      if (rest.length && sc < 4 && rest.some(t => !p.full.includes(t))) continue;
+      res.push([sc + p.lp / 8 + (p.kind ? 0.25 : 0), p]);
+    }
+    res.sort((a, b) => b[0] - a[0]);
+    return res.slice(0, 12).map(r => r[1]);
+  }
+
+  const place = { label: "", lat: 0, lon: 0 };
+  let placeVersion = 0;
+  function setPlace(label, lat, lon, save = true) {
+    place.label = label; place.lat = lat; place.lon = lon; placeVersion++;
+    $("here").textContent = label;
+    $("lat").value = lat.toFixed(4); $("lon").value = lon.toFixed(4);
+    if (save) store.set("cosmic-place-v2", { label, lat, lon });
+    if (window.__onPlace) window.__onPlace();
+  }
+  (function initPlace() {
+    const saved = store.get("cosmic-place-v2");
+    if (saved && isFinite(saved.lat)) return setPlace(saved.label, saved.lat, saved.lon, false);
+    let tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    const city = norm((tz.split("/").pop() || "").replace(/_/g, " "));
+    const hit = city && PLACES.find(p => p.kind === 0 && p.k === city);
+    if (hit) return setPlace(hit.label, hit.lat, hit.lon, false);
+    const off = -new Date().getTimezoneOffset() / 60;
+    setPlace(`${off >= 0 ? "UTC+" : "UTC"}${off} time zone (approximate)`, 0, Math.max(-180, Math.min(180, off * 15)), false);
+  })();
+
+  // search UI
+  const q = $("q"), resultsEl = $("results");
+  let results = [], active = -1;
+  function renderResults() {
+    resultsEl.innerHTML = "";
+    if (!q.value.trim()) { resultsEl.hidden = true; q.setAttribute("aria-expanded", "false"); return; }
+    if (!results.length) {
+      const li = document.createElement("li"); li.className = "empty"; li.textContent = "No match. Try a nearby larger city, or enter coordinates below.";
+      resultsEl.appendChild(li);
+    }
+    results.forEach((p, i) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option"); li.setAttribute("aria-selected", String(i === active));
+      const a = document.createElement("span"); a.className = "rn"; a.textContent = p.name;
+      const b = document.createElement("span"); b.className = "rs"; b.textContent = p.sub;
+      li.append(a, b);
+      li.addEventListener("mousedown", e => { e.preventDefault(); choose(p); });
+      resultsEl.appendChild(li);
+    });
+    resultsEl.hidden = false; q.setAttribute("aria-expanded", "true");
+  }
+  function choose(p) {
+    setPlace(p.label, p.lat, p.lon);
+    q.value = ""; results = []; active = -1; renderResults(); q.blur();
+    $("msg").textContent = "";
+  }
+  q.addEventListener("input", () => { results = search(q.value); active = results.length ? 0 : -1; renderResults(); });
+  q.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { active = Math.min(results.length - 1, active + 1); renderResults(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { active = Math.max(0, active - 1); renderResults(); e.preventDefault(); }
+    else if (e.key === "Enter" && results[active]) { choose(results[active]); e.preventDefault(); }
+    else if (e.key === "Escape") { q.value = ""; results = []; renderResults(); }
+  });
+  q.addEventListener("blur", () => setTimeout(() => { resultsEl.hidden = true; q.setAttribute("aria-expanded", "false"); }, 120));
+  q.addEventListener("focus", () => { if (q.value.trim()) renderResults(); });
+
+  function nearestCity(lat, lon) {
+    let best = null, bd = 1e9;
+    for (const c of G.cities) {
+      const dx = (c[4] - lon) * Math.cos(lat * D2R), dy = c[3] - lat, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best ? { c: best, km: Math.sqrt(bd) * 111 } : null;
+  }
+  function coordLabel(lat, lon) {
+    const n = nearestCity(lat, lon);
+    const pos = `${Math.abs(lat).toFixed(3)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}° ${lon >= 0 ? "E" : "W"}`;
+    if (!n) return pos;
+    const st = n.c[1] >= 0 ? G.states[n.c[1]][0] + ", " : "";
+    return n.km < 30 ? `${pos} · near ${n.c[0]}, ${st}${G.countries[n.c[2]] || n.c[2]}` : `${pos} · ${Math.round(n.km)} km from ${n.c[0]}`;
+  }
+  $("setc").addEventListener("click", () => {
+    const la = parseFloat($("lat").value), lo = parseFloat($("lon").value);
+    if (!isFinite(la) || !isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) { $("msg").textContent = "Latitude must be between −90 and 90, longitude between −180 and 180."; return; }
+    $("msg").textContent = "";
+    setPlace(coordLabel(la, lo), la, lo);
+  });
+  $("locate").addEventListener("click", () => {
+    const m = $("msg");
+    if (!navigator.geolocation) { m.textContent = "Location isn't available here. Search for your city instead."; return; }
+    m.textContent = "Finding your location…";
+    navigator.geolocation.getCurrentPosition(
+      pos => { m.textContent = ""; setPlace(coordLabel(pos.coords.latitude, pos.coords.longitude), pos.coords.latitude, pos.coords.longitude); },
+      () => { m.textContent = "Location isn't available in this view. Search for your city or suburb instead."; },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+    );
+  });
+
+  /* ================= astronomy ================= */
+  const PLANETS = [
+    ["Mercury", "#b9b2a8", [0.38709927, 0.20563593, 7.00497902, 252.25032350, 77.45779628, 48.33076593], [0.00000037, 0.00001906, -0.00594749, 149472.67411175, 0.16047689, -0.12534081]],
+    ["Venus", "#e9d29a", [0.72333566, 0.00677672, 3.39467605, 181.97909950, 131.60246718, 76.67984255], [0.00000390, -0.00004107, -0.00078890, 58517.81538729, 0.00268329, -0.27769418]],
+    ["Earth", "#72b6ff", [1.00000261, 0.01671123, -0.00001531, 100.46457166, 102.93768193, 0.0], [0.00000562, -0.00004392, -0.01294668, 35999.37244981, 0.32327364, 0.0]],
+    ["Mars", "#e2774f", [1.52371034, 0.09339410, 1.84969142, -4.55343205, -23.94362959, 49.55953891], [0.00001847, 0.00007882, -0.00813131, 19140.30268499, 0.44441088, -0.29257343]],
+    ["Jupiter", "#d9b48a", [5.20288700, 0.04838624, 1.30439695, 34.39644051, 14.72847983, 100.47390909], [-0.00011607, -0.00013253, -0.00183714, 3034.74612775, 0.21252668, 0.20469106]],
+    ["Saturn", "#e6cf8f", [9.53667594, 0.05386179, 2.48599187, 49.95424423, 92.59887831, 113.66242448], [-0.00125060, -0.00050991, 0.00193609, 1222.49362201, -0.41897216, -0.28867794]],
+    ["Uranus", "#9fe0e6", [19.18916464, 0.04725744, 0.77263783, 313.23810451, 170.95427630, 74.01692503], [-0.00196176, -0.00004397, -0.00242939, 428.48202785, 0.40805281, 0.04240589]],
+    ["Neptune", "#6f8cff", [30.06992276, 0.00859048, 1.77004347, -55.12002969, 44.96476227, 131.78422574], [0.00026291, 0.00005105, 0.00035372, 218.45945325, -0.32241464, -0.00508664]]
+  ];
+  const jd = ms => ms / 86400000 + 2440587.5;
+  const norm360 = x => ((x % 360) + 360) % 360;
+  function elements(p, T) {
+    const [a, e, I, L, wb, Om] = p[2].map((v, i) => v + p[3][i] * T);
+    return { a, e, I: I * D2R, M: norm360(L - wb) * D2R, w: (wb - Om) * D2R, Om: Om * D2R };
+  }
+  function posFromE(el, E) {
+    const xp = el.a * (Math.cos(E) - el.e), yp = el.a * Math.sqrt(1 - el.e * el.e) * Math.sin(E);
+    const cw = Math.cos(el.w), sw = Math.sin(el.w), cO = Math.cos(el.Om), sO = Math.sin(el.Om), cI = Math.cos(el.I), sI = Math.sin(el.I);
+    return {
+      x: (cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp,
+      y: (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp,
+      z: (sw * sI) * xp + (cw * sI) * yp
+    };
+  }
+  function solveE(M, e) { let E = M + e * Math.sin(M); for (let k = 0; k < 8; k++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); return E; }
+  function planetState(p, T) {
+    const el = elements(p, T), P = posFromE(el, solveE(el.M, el.e)), r = Math.hypot(P.x, P.y, P.z);
+    return { el, ...P, r, v: 29.7847 * Math.sqrt(2 / r - 1 / el.a) };
+  }
+  function sunInfo(ms) {
+    const n = jd(ms) - 2451545.0;
+    const L = norm360(280.460 + 0.9856474 * n), g = norm360(357.528 + 0.9856003 * n) * D2R;
+    const lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D2R, eps = (23.439 - 0.0000004 * n) * D2R;
+    const ra = norm360(Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) * R2D), dec = Math.asin(Math.sin(eps) * Math.sin(lam)) * R2D;
+    const gmst = norm360(280.46061837 + 360.98564736629 * n);
+    return { ra, dec, gmst, sublon: norm360(ra - gmst + 180) - 180 };
+  }
+  const PREC = 1.39697;
+  function geoEq(lonD, latD, T) {
+    const eps = (23.439291 - 0.0130042 * T) * D2R, l = lonD * D2R, b = latD * D2R;
+    const x = Math.cos(b) * Math.cos(l), y = Math.cos(b) * Math.sin(l), z = Math.sin(b);
+    return { ra: norm360(Math.atan2(y * Math.cos(eps) - z * Math.sin(eps), x) * R2D), dec: Math.asin(y * Math.sin(eps) + z * Math.cos(eps)) * R2D };
+  }
+  function horiz(ra, dec, lat, lst) {
+    const H = (lst - ra) * D2R, d = dec * D2R, p = lat * D2R;
+    const alt = Math.asin(Math.sin(p) * Math.sin(d) + Math.cos(p) * Math.cos(d) * Math.cos(H));
+    const az = Math.atan2(-Math.cos(d) * Math.sin(H), Math.sin(d) * Math.cos(p) - Math.cos(d) * Math.cos(H) * Math.sin(p));
+    return { alt: alt * R2D, az: norm360(az * R2D) };
+  }
+  function moonEcl(T) {
+    const s = (a, b) => Math.sin((a + b * T) * D2R), c = (a, b) => Math.cos((a + b * T) * D2R);
+    const lon = 218.32 + 481267.881 * T + 6.29 * s(135.0, 477198.87) - 1.27 * s(259.3, -413335.36) + 0.66 * s(235.7, 890534.22)
+      + 0.21 * s(269.9, 954397.74) - 0.19 * s(357.5, 35999.05) - 0.11 * s(186.5, 966404.03);
+    const lat = 5.13 * s(93.3, 483202.02) + 0.28 * s(228.2, 960400.89) - 0.28 * s(318.3, 6003.15) - 0.17 * s(217.6, -407332.21);
+    const par = 0.9508 + 0.0518 * c(135.0, 477198.87) + 0.0095 * c(259.3, -413335.36) + 0.0078 * c(235.7, 890534.22) + 0.0028 * c(269.9, 954397.74);
+    return { lon: norm360(lon), lat, km: 6378.14 / Math.sin(par * D2R), par };
+  }
+  const SKYCOL = ["#f3b649", "#e8e6dc", "#b9b2a8", "#e9d29a", "#e2774f", "#d9b48a", "#e6cf8f", "#9fe0e6", "#6f8cff"];
+  function skyAt(ms, lat, lon, states) {
+    const T = (jd(ms) - 2451545.0) / 36525;
+    states = states || PLANETS.map(p => ({ p, ...planetState(p, T) }));
+    const E = states[2], gmst = sunInfo(ms).gmst, lst = norm360(gmst + lon);
+    const out = [];
+    const add = (name, lonE, latE, au, extra) => {
+      const q = geoEq(lonE, latE, T);
+      out.push({ name, color: SKYCOL[out.length], au, ...q, ...horiz(q.ra, q.dec, lat, lst), ...extra });
+    };
+    const sunLon = norm360(Math.atan2(-E.y, -E.x) * R2D + PREC * T);
+    add("Sun", sunLon, Math.atan2(-E.z, Math.hypot(E.x, E.y)) * R2D, E.r, {});
+    const m = moonEcl(T), elong = norm360(m.lon - sunLon);
+    add("Moon", m.lon, m.lat, m.km / AU_KM, { km: m.km, illum: (1 - Math.cos(elong * D2R)) / 2, waxing: elong < 180 });
+    out[1].alt -= m.par * Math.cos(out[1].alt * D2R);
+    states.forEach((st, i) => {
+      if (i === 2) return;
+      const x = st.x - E.x, y = st.y - E.y, z = st.z - E.z;
+      add(st.p[0], norm360(Math.atan2(y, x) * R2D + PREC * T), Math.atan2(z, Math.hypot(x, y)) * R2D, Math.hypot(x, y, z), {});
+    });
+    out.T = T; out.lst = lst; out.gmst = gmst;
+    return out;
+  }
+  function nextEvents(ms) {
+    const step = 600000, N = 156;
+    let prev = skyAt(ms, place.lat, place.lon);
+    const res = prev.map(() => null);
+    for (let k = 1; k <= N; k++) {
+      const t = ms + k * step, cur = skyAt(t, place.lat, place.lon);
+      cur.forEach((b, i) => {
+        if (res[i]) return;
+        const h0 = i < 2 ? -0.833 : -0.567, a = prev[i].alt - h0, c = b.alt - h0;
+        if ((a <= 0 && c > 0) || (a > 0 && c <= 0)) res[i] = { type: c > 0 ? "Rises" : "Sets", t: t - step + (a / (a - c)) * step };
+      });
+      prev = cur;
+    }
+    return res;
+  }
+
+  /* ================= formatting ================= */
+  const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf3 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const pad = n => String(n).padStart(2, "0");
+  const fmtKm = km => km < 10 ? nf3.format(km) + " km" : km < 1000 ? nf1.format(km) + " km" : nf0.format(km) + " km";
+  const fmtDate = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  const fmtDur = s => s < 60 ? `${s.toFixed(1)} s` : s < 3600 ? `${Math.floor(s / 60)} min ${Math.floor(s % 60)} s` : `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+  const fmtDist = km => km < 1e6 ? `${nf0.format(km)} km` : km < 1e9 ? `${nf1.format(km / 1e6)} million km` : `${(km / 1e9).toFixed(2)} billion km`;
+  const DIRS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+  /* ================= time + UI state ================= */
+  let speed = 1, simOffset = 0, lastReal = performance.now();
+  const openedAt = performance.now();
+  $("speeds").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.speed === "now") { simOffset = 0; speed = 1; } else speed = +b.dataset.speed;
+    [...$("speeds").children].forEach(x => x.setAttribute("aria-pressed", String(x.dataset.speed !== "now" && +x.dataset.speed === speed)));
+  });
+  let view = store.get("cosmic-view-v2") || "earth", scope = "inner";
+  if (!["earth", "map", "sky", "solar", "galaxy"].includes(view)) view = "earth";
+  const tabs = [...document.querySelectorAll(".tab")];
+
+  /* ================= table ================= */
+  const rows = SKYCOL.map(() => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td class="name"><span class="swatch"></span><span class="nm"></span><small></small></td><td class="st"></td><td class="dir"></td><td class="dist"></td><td class="lt"></td><td class="nx"></td>';
+    $("bodies").appendChild(tr);
+    return tr;
+  });
+  let events = [], eventsAt = -1e9, eventsKey = "", tableAt = 0;
+  function updateTable(sky, ms, now) {
+    const key = placeVersion;
+    if (now - eventsAt > 1500 || key !== eventsKey) { events = nextEvents(ms); eventsAt = now; eventsKey = key; }
+    if (now - tableAt < 250) return;
+    tableAt = now;
+    sky.forEach((b, i) => {
+      const c = rows[i].children, up = b.alt > 0;
+      rows[i].classList.toggle("below", !up);
+      c[0].querySelector(".swatch").style.background = b.color;
+      c[0].querySelector(".nm").textContent = b.name;
+      c[0].querySelector("small").textContent = b.name === "Moon" ? `${Math.round(b.illum * 100)}% lit, ${b.waxing ? "waxing" : "waning"}` : "";
+      c[1].innerHTML = up ? '<span class="pill up">Above horizon</span>' : '<span class="pill down">Below horizon</span>';
+      c[2].textContent = `${DIRS[Math.round(b.az / 22.5) % 16]} (${b.az.toFixed(0)}°), ${b.alt >= 0 ? "" : "−"}${Math.abs(b.alt).toFixed(1)}° ${up ? "up" : "below"}`;
+      const km = b.km ?? b.au * AU_KM;
+      c[3].textContent = b.name === "Moon" ? fmtDist(km) : `${fmtDist(km)} · ${b.au.toFixed(3)} AU`;
+      c[4].textContent = fmtDur(km / C_KMS);
+      const ev = events[i];
+      if (ev) { const s = Math.max(0, (ev.t - ms) / 1000); c[5].textContent = `${ev.type} in ${Math.floor(s / 3600)} h ${pad(Math.floor((s % 3600) / 60))} min`; }
+      else c[5].textContent = up ? "Up all day" : "Stays below all day";
+    });
+    const nUp = sky.filter(b => b.alt > 0).length;
+    $("bodies-sub").textContent = `Seen from ${place.label}. ${nUp} of 9 are above your horizon. Directions are compass bearings; the angle is how high to look above the horizon. Uranus and Neptune need binoculars or a telescope.`;
+  }
+
+  /* ================= 3D ================= */
+  const stage = $("stage"), canvas = $("cv"), labelsRoot = $("labels");
+  let renderer = null;
+  try {
+    if (!window.THREE) throw new Error("3D library did not load");
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+  } catch (e) {
+    const d = document.createElement("div"); d.className = "nogl";
+    d.textContent = "3D graphics aren't available on this device or browser. The numbers and the sky table still update live.";
+    stage.appendChild(d); canvas.hidden = true;
+  }
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function radialTex(stops, size = 128) {
+    const c = document.createElement("canvas"); c.width = c.height = size;
+    const g = c.getContext("2d"), gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    stops.forEach(([o, col]) => gr.addColorStop(o, col));
+    g.fillStyle = gr; g.fillRect(0, 0, size, size);
+    return new THREE.CanvasTexture(c);
+  }
+  function glowSprite(tex, color, scale, opacity = 1) {
+    const m = new THREE.SpriteMaterial({ map: tex, color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+    const s = new THREE.Sprite(m); s.scale.set(scale, scale, 1); return s;
+  }
+  function starfield(n, R) {
+    const g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const u = Math.random() * 2 - 1, t = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      pos.set([R * s * Math.cos(t), R * u, R * s * Math.sin(t)], i * 3);
+      const b = Math.pow(Math.random(), 2.2) * 0.9 + 0.1, warm = Math.random();
+      col.set([b * (0.85 + warm * 0.15), b * 0.9, b * (1 - warm * 0.2)], i * 3);
+    }
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const m = new THREE.PointsMaterial({ size: 2.2 * DPR, sizeAttenuation: false, vertexColors: true, map: DOT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    return new THREE.Points(g, m);
+  }
+  function line(points, color, opacity, dashed) {
+    const g = new THREE.BufferGeometry().setFromPoints(points);
+    const m = dashed
+      ? new THREE.LineDashedMaterial({ color, transparent: true, opacity, dashSize: dashed, gapSize: dashed * 0.8, depthWrite: false })
+      : new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+    const l = new THREE.Line(g, m); if (dashed) l.computeLineDistances(); return l;
+  }
+
+  // labels
+  function makeLabels() {
+    const root = document.createElement("div"); root.hidden = true; labelsRoot.appendChild(root);
+    const items = [];
+    return {
+      root, items,
+      add(text, cls = "", occl = null) {
+        const d = document.createElement("div"); d.className = "lbl " + cls; d.textContent = text; root.appendChild(d);
+        const it = { d, pos: new THREE.Vector3(), show: true, occl, set(t) { if (d.textContent !== t) d.textContent = t; }, cls(c) { d.className = "lbl " + c; } };
+        items.push(it); return it;
+      }
+    };
+  }
+  const projV = renderer ? new THREE.Vector3() : null;
+  function placeLabels(v, w, h) {
+    for (const it of v.labels.items) {
+      if (!it.show) { it.d.hidden = true; continue; }
+      projV.copy(it.pos).project(v.camera);
+      if (projV.z > 1 || (it.occl && it.occl(it.pos, v.camera))) { it.d.hidden = true; continue; }
+      it.d.hidden = false;
+      it.d.style.transform = `translate(${((projV.x + 1) / 2 * w + 9).toFixed(1)}px, ${((1 - projV.y) / 2 * h - 8).toFixed(1)}px)`;
+    }
+  }
+  function makeView(fov, near, far) {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(fov, 1, near, far);
+    const controls = new THREE.OrbitControls(camera, canvas);
+    controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false; controls.enabled = false;
+    controls.rotateSpeed = 0.6;
+    return { scene, camera, controls, labels: makeLabels() };
+  }
+
+  let DOT, GLOW, views = {}, earthTex = null;
+  const ecefVec = (lat, lon, r = 1) => new THREE.Vector3(r * Math.cos(lat * D2R) * Math.cos(lon * D2R), r * Math.sin(lat * D2R), -r * Math.cos(lat * D2R) * Math.sin(lon * D2R));
+
+  /* ---- Earth textures from real coastlines and borders ---- */
+  function decodeRings(rs) {
+    return rs.map(a => { const pts = new Float32Array(a.length); let x = 0, y = 0; for (let i = 0; i < a.length; i += 2) { x += a[i]; y += a[i + 1]; pts[i] = x / 10; pts[i + 1] = y / 10; } return pts; });
+  }
+  function buildEarthTextures(W) {
+    const H = W / 2, k = W / 4096;
+    const land = decodeRings(G.land), borders = decodeRings(G.borders);
+    const mk = () => { const c = document.createElement("canvas"); c.width = W; c.height = H; return [c, c.getContext("2d")]; };
+    const path = (g, rings, close) => {
+      g.beginPath();
+      for (const r of rings) {
+        for (let i = 0; i < r.length; i += 2) {
+          const x = (r[i] + 180) / 360 * W, y = (90 - r[i + 1]) / 180 * H;
+          i ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        if (close) g.closePath();
+      }
+    };
+    // land mask
+    const [mask, mg] = mk(); mg.fillStyle = "#fff"; path(mg, land, true); mg.fill("evenodd");
+    // day map
+    const [day, dg] = mk();
+    const og = dg.createLinearGradient(0, 0, 0, H);
+    [[0, "#1b3a56"], [0.15, "#0f2f52"], [0.5, "#0e3a66"], [0.85, "#0f2f52"], [1, "#1b3a56"]].forEach(([o, c]) => og.addColorStop(o, c));
+    dg.fillStyle = og; dg.fillRect(0, 0, W, H);
+    for (let i = 0; i < 2500; i++) { // subtle ocean depth variation
+      dg.fillStyle = `rgba(${Math.random() < 0.5 ? "0,10,30" : "40,90,140"},0.05)`;
+      dg.beginPath(); dg.arc(Math.random() * W, Math.random() * H, (20 + Math.random() * 90) * k, 0, 7); dg.fill();
+    }
+    const [L, lg] = mk();
+    const bg = lg.createLinearGradient(0, 0, 0, H);
+    [[0, "#f4f7f9"], [0.1, "#e2e8ea"], [0.15, "#8d9478"], [0.2, "#5d6f45"], [0.27, "#4b6638"], [0.32, "#8f8a5c"], [0.36, "#b79f6c"], [0.41, "#a68f5e"],
+     [0.46, "#3f6a33"], [0.5, "#356030"], [0.54, "#3d6833"], [0.6, "#8b8052"], [0.64, "#ae9665"], [0.69, "#7a7a4c"], [0.75, "#4f6a3a"], [0.8, "#9aa29a"], [0.84, "#eef2f4"], [1, "#f6f8fa"]]
+      .forEach(([o, c]) => bg.addColorStop(o, c));
+    lg.fillStyle = bg; lg.fillRect(0, 0, W, H);
+    for (let i = 0; i < 9000; i++) { // terrain mottling
+      const dark = Math.random() < 0.55;
+      lg.fillStyle = dark ? `rgba(30,40,20,${0.04 + Math.random() * 0.06})` : `rgba(255,240,200,${0.03 + Math.random() * 0.05})`;
+      lg.beginPath(); lg.arc(Math.random() * W, Math.random() * H, (2 + Math.random() * 16) * k, 0, 7); lg.fill();
+    }
+    lg.globalCompositeOperation = "destination-in"; lg.drawImage(mask, 0, 0);
+    dg.drawImage(L, 0, 0);
+    dg.lineJoin = "round";
+    dg.strokeStyle = "rgba(190,225,255,0.28)"; dg.lineWidth = 1.4 * k; path(dg, land, true); dg.stroke();
+    dg.strokeStyle = "rgba(255,255,255,0.32)"; dg.lineWidth = 1.1 * k; path(dg, borders, false); dg.stroke();
+    // specular (ocean shines)
+    const [spec, sg] = mk(); sg.fillStyle = "#fff"; sg.fillRect(0, 0, W, H); sg.globalCompositeOperation = "destination-out"; sg.drawImage(mask, 0, 0);
+    const [spec2, s2] = mk(); s2.fillStyle = "#000"; s2.fillRect(0, 0, W, H); s2.drawImage(spec, 0, 0);
+    // night map: city lights
+    const [night, ng] = mk();
+    ng.fillStyle = "#000"; ng.fillRect(0, 0, W, H);
+    ng.globalAlpha = 0.07; ng.drawImage(mask, 0, 0); ng.globalAlpha = 1;
+    ng.globalCompositeOperation = "lighter";
+    for (const c of G.cities) {
+      const x = (c[4] + 180) / 360 * W, y = (90 - c[3]) / 180 * H;
+      const r = Math.max(1.2, Math.min(18, Math.sqrt(c[5]) / 170)) * k * 1.6;
+      const gr = ng.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, "rgba(255,214,140,0.85)"); gr.addColorStop(0.35, "rgba(255,170,80,0.35)"); gr.addColorStop(1, "rgba(255,140,40,0)");
+      ng.fillStyle = gr; ng.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const aniso = renderer.capabilities.getMaxAnisotropy();
+    const tex = c => { const t = new THREE.CanvasTexture(c); t.anisotropy = aniso; return t; };
+    return { day: tex(day), night: tex(night), spec: tex(spec2) };
+  }
+
+  const EARTH_VS = `
+    varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+    void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
+  const EARTH_FS = `
+    uniform sampler2D dayMap; uniform sampler2D nightMap; uniform sampler2D specMap; uniform vec3 sunDir;
+    varying vec2 vUv; varying vec3 vN; varying vec3 vW;
+    void main(){
+      vec3 n = normalize(vN); float d = dot(n, sunDir); float dm = smoothstep(-0.08, 0.14, d);
+      vec3 day = texture2D(dayMap, vUv).rgb; vec3 night = texture2D(nightMap, vUv).rgb;
+      vec3 V = normalize(cameraPosition - vW); vec3 R = reflect(-sunDir, n);
+      float spec = pow(max(dot(R, V), 0.0), 30.0) * texture2D(specMap, vUv).r;
+      vec3 lit = day * (0.16 + 1.0 * max(d, 0.0)) + vec3(1.0, 0.93, 0.8) * spec * 0.5 * dm;
+      float tw = 1.0 - smoothstep(0.0, 0.2, abs(d));
+      vec3 col = mix(night * 1.35 + day * 0.035, lit, dm) + vec3(1.0, 0.42, 0.18) * tw * 0.16;
+      float rim = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+      col += vec3(0.32, 0.58, 1.0) * rim * (0.12 + 0.75 * dm);
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+  const ATMO_VS = `varying vec3 vN; varying vec3 vWN; void main(){ vN = normalize(normalMatrix * normal); vWN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
+  const ATMO_FS = `uniform vec3 sunDir; varying vec3 vN; varying vec3 vWN;
+    void main(){ float f = clamp(-vN.z / 0.46, 0.0, 1.0); float i = pow(f, 2.6); float s = 0.15 + 0.85 * smoothstep(-0.35, 0.5, dot(vWN, sunDir));
+      gl_FragColor = vec4(vec3(0.35, 0.62, 1.0) * i * s * 1.25, 1.0); }`;
+
+  function buildEarthView() {
+    const v = makeView(38, 0.01, 2000);
+    v.scene.add(starfield(5000, 900));
+    const size = (renderer.capabilities.maxTextureSize >= 4096 && Math.min(screen.width, screen.height) > 500) ? 4096 : 2048;
+    earthTex = buildEarthTextures(size);
+    const uni = { dayMap: { value: earthTex.day }, nightMap: { value: earthTex.night }, specMap: { value: earthTex.spec }, sunDir: { value: new THREE.Vector3(1, 0, 0) } };
+    const globe = new THREE.Mesh(new THREE.SphereGeometry(1, 160, 120), new THREE.ShaderMaterial({ uniforms: uni, vertexShader: EARTH_VS, fragmentShader: EARTH_FS }));
+    v.scene.add(globe);
+    const atmo = new THREE.Mesh(new THREE.SphereGeometry(1.11, 96, 72), new THREE.ShaderMaterial({ uniforms: { sunDir: uni.sunDir }, vertexShader: ATMO_VS, fragmentShader: ATMO_FS, side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+    v.scene.add(atmo);
+    // graticule
+    const gpts = [];
+    for (let lat = -75; lat <= 75; lat += 15) for (let lon = -180; lon < 180; lon += 3) gpts.push(ecefVec(lat, lon, 1.002), ecefVec(lat, lon + 3, 1.002));
+    for (let lon = -180; lon < 180; lon += 15) for (let lat = -90; lat < 90; lat += 3) gpts.push(ecefVec(lat, lon, 1.002), ecefVec(lat + 3, lon, 1.002));
+    const grat = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gpts), new THREE.LineBasicMaterial({ color: 0x9fc4ff, transparent: true, opacity: 0.07, depthWrite: false }));
+    v.scene.add(grat);
+    // sun far away + moon
+    const sun = glowSprite(GLOW, 0xffd27a, 26); v.scene.add(sun);
+    const sunCore = glowSprite(DOT, 0xffffff, 6); v.scene.add(sunCore);
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(0.27, 48, 32), new THREE.MeshStandardMaterial({ color: 0xd9d7cf, roughness: 1 }));
+    v.scene.add(moon);
+    const light = new THREE.DirectionalLight(0xffffff, 1.5); v.scene.add(light); v.scene.add(new THREE.AmbientLight(0x404a66, 0.08));
+    // you marker
+    const you = new THREE.Group();
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const halo = glowSprite(DOT, 0x9fd0ff, 0.09);
+    const ringGeo = new THREE.RingGeometry(0.022, 0.027, 48);
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
+    const stalk = line([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0.09)], 0xffffff, 0.8);
+    you.add(dot, halo, ring, stalk); v.scene.add(you);
+    const subsolar = glowSprite(DOT, 0xffc65a, 0.07); v.scene.add(subsolar);
+    const sublunar = glowSprite(DOT, 0xe6e6ff, 0.05); v.scene.add(sublunar);
+    const front = (p, cam) => p.dot(cam.position) - p.lengthSq() < 0;
+    const lYou = v.labels.add("You", "you", front), lSun = v.labels.add("Sun overhead", "sol", front), lMoon = v.labels.add("Moon overhead", "", front);
+    const lSunFar = v.labels.add("Sun", "sol"), lMoonBody = v.labels.add("Moon (distance not to scale)", "dim");
+    // camera
+    let fly = null;
+    const camDist = () => v.camera.position.length();
+    const center = (animate) => {
+      const to = ecefVec(place.lat, place.lon, 1).normalize();
+      if (!animate) { v.camera.position.copy(to.multiplyScalar(3.1)); v.camera.lookAt(0, 0, 0); return; }
+      fly = { from: v.camera.position.clone().normalize(), to, d0: camDist(), d1: Math.min(Math.max(camDist(), 2.2), 3.4), t: 0 };
+    };
+    v.flyTo = (lat, lon, dist) => { fly = { from: v.camera.position.clone().normalize(), to: ecefVec(lat, lon, 1).normalize(), d0: camDist(), d1: dist, t: 0 }; };
+    v.lookPoint = () => { const d = v.camera.position.clone().normalize(); return [Math.asin(d.y) * R2D, Math.atan2(-d.z, d.x) * R2D]; };
+    v.controls.minDistance = 1.12; v.controls.maxDistance = 9; v.controls.target.set(0, 0, 0);
+    center(false);
+    v.center = () => center(true);
+    v.onPlace = () => center(true);
+    const q1 = new THREE.Quaternion();
+    v.update = (A, dt) => {
+      const sd = ecefVec(A.sun.dec, A.sun.sublon, 1);
+      uni.sunDir.value.copy(sd);
+      sun.position.copy(sd).multiplyScalar(300); sunCore.position.copy(sun.position);
+      light.position.copy(sd);
+      lSunFar.pos.copy(sun.position);
+      const m = A.sky[1], mlon = norm360(m.ra - A.sky.gmst + 180) - 180;
+      const md = ecefVec(m.dec, mlon, 1);
+      moon.position.copy(md).multiplyScalar(14);
+      lMoonBody.pos.copy(moon.position).add(new THREE.Vector3(0, 0.35, 0));
+      sublunar.position.copy(md).multiplyScalar(1.004); lMoon.pos.copy(sublunar.position);
+      subsolar.position.copy(sd).multiplyScalar(1.004); lSun.pos.copy(subsolar.position);
+      const up = ecefVec(place.lat, place.lon, 1);
+      you.position.copy(up).multiplyScalar(1.001);
+      you.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), up);
+      const pulse = reduceMotion ? 1 : 1 + 0.35 * Math.sin(performance.now() / 380);
+      ring.scale.setScalar(pulse);
+      lYou.pos.copy(up).multiplyScalar(1.09); lYou.set("You · " + place.label.split(",")[0]);
+      if (fly) {
+        fly.t = Math.min(1, fly.t + dt / 1.1);
+        const e = fly.t < 0.5 ? 2 * fly.t * fly.t : 1 - Math.pow(-2 * fly.t + 2, 2) / 2;
+        q1.setFromUnitVectors(fly.from, fly.to);
+        const dir = fly.from.clone().applyQuaternion(new THREE.Quaternion().slerp(q1, e));
+        v.camera.position.copy(dir.multiplyScalar(fly.d0 + (fly.d1 - fly.d0) * e));
+        if (fly.t >= 1) fly = null;
+      }
+      // zooming in past the clouds hands over to the satellite close-up at the point you are looking at
+      if (!fly && view === "earth" && camDist() < 1.18) {
+        const [la, lo] = v.lookPoint();
+        v.camera.position.setLength(1.7);
+        toMap(la, lo, 7);
+      }
+    };
+    return v;
+  }
+
+  /* ---- Your sky: a dome over your horizon ---- */
+  function compassTexture() {
+    const S = 1024, c = document.createElement("canvas"); c.width = c.height = S; const g = c.getContext("2d"), m = S / 2;
+    const gr = g.createRadialGradient(m, m, 0, m, m, m);
+    gr.addColorStop(0, "#1a2142"); gr.addColorStop(0.85, "#11162e"); gr.addColorStop(1, "#0b0e20");
+    g.fillStyle = gr; g.beginPath(); g.arc(m, m, m, 0, 7); g.fill();
+    g.strokeStyle = "rgba(160,170,220,0.25)"; g.lineWidth = 2;
+    [0.33, 0.66, 0.97].forEach(r => { g.beginPath(); g.arc(m, m, m * r, 0, 7); g.stroke(); });
+    for (let a = 0; a < 360; a += 5) {
+      const r0 = a % 45 === 0 ? 0.86 : a % 15 === 0 ? 0.91 : 0.94, t = (a - 90) * D2R;
+      g.strokeStyle = a % 45 === 0 ? "rgba(233,231,242,0.7)" : "rgba(160,170,220,0.4)"; g.lineWidth = a % 45 === 0 ? 3 : 2;
+      g.beginPath(); g.moveTo(m + Math.cos(t) * m * r0, m + Math.sin(t) * m * r0); g.lineTo(m + Math.cos(t) * m * 0.97, m + Math.sin(t) * m * 0.97); g.stroke();
+    }
+    g.textAlign = "center"; g.textBaseline = "middle";
+    [["N", 0, 64], ["NE", 45, 34], ["E", 90, 64], ["SE", 135, 34], ["S", 180, 64], ["SW", 225, 34], ["W", 270, 64], ["NW", 315, 34]].forEach(([s, a, f]) => {
+      const t = (a - 90) * D2R; g.font = `600 ${f}px IBM Plex Sans, system-ui, sans-serif`;
+      g.fillStyle = s === "N" ? "#f3b649" : "rgba(233,231,242,0.85)";
+      g.fillText(s, m + Math.cos(t) * m * 0.76, m + Math.sin(t) * m * 0.76);
+    });
+    const t = new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+  }
+  function buildSkyView() {
+    const v = makeView(42, 0.1, 3000);
+    const stars = starfield(3000, 800); v.scene.add(stars);
+    const R = 10;
+    const azalt = (alt, az, r = R) => new THREE.Vector3(r * Math.cos(alt * D2R) * Math.sin(az * D2R), r * Math.sin(alt * D2R), -r * Math.cos(alt * D2R) * Math.cos(az * D2R));
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(R * 1.04, 128), new THREE.MeshBasicMaterial({ map: compassTexture(), transparent: true, opacity: 0.92, depthWrite: false, side: THREE.DoubleSide }));
+    ground.rotation.x = -Math.PI / 2; ground.renderOrder = 1; v.scene.add(ground);
+    const domeMat = new THREE.MeshBasicMaterial({ color: 0x0b1230, transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 48, 0, Math.PI * 2, 0, Math.PI / 2), domeMat); v.scene.add(dome);
+    const domeFront = new THREE.Mesh(dome.geometry, new THREE.MeshBasicMaterial({ color: 0x8fb4ff, transparent: true, opacity: 0.035, side: THREE.FrontSide, depthWrite: false })); v.scene.add(domeFront);
+    // grid on dome
+    const gridMat = new THREE.LineBasicMaterial({ color: 0xaab8ff, transparent: true, opacity: 0.18, depthWrite: false });
+    [0, 30, 60].forEach(a => { const p = []; for (let z = 0; z <= 360; z += 3) p.push(azalt(a, z)); v.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), gridMat)); });
+    for (let z = 0; z < 360; z += 45) { const p = []; for (let a = 0; a <= 90; a += 3) p.push(azalt(a, z)); v.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), gridMat)); }
+    // you
+    const pin = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 24), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    pin.rotation.x = Math.PI; pin.position.y = 0.32; v.scene.add(pin);
+    v.scene.add(glowSprite(DOT, 0x9fd0ff, 1.4, 0.7));
+    const lYou = v.labels.add("You", "you"); lYou.pos.set(0, 0.7, 0);
+    // ecliptic + today's sun path
+    const EN = 181, eclGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: EN }, () => new THREE.Vector3()));
+    const ecl = new THREE.Line(eclGeo, new THREE.LineDashedMaterial({ color: 0xf3b649, transparent: true, opacity: 0.55, dashSize: 0.35, gapSize: 0.25, depthWrite: false }));
+    v.scene.add(ecl);
+    const SN = 97, pathGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: SN }, () => new THREE.Vector3()));
+    const sunPath = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.35, depthWrite: false }));
+    v.scene.add(sunPath);
+    const lEcl = v.labels.add("ecliptic", "sol"), lPath = v.labels.add("Sun's path today", "sol");
+    // bodies
+    const light = new THREE.DirectionalLight(0xffffff, 1.6); v.scene.add(light); v.scene.add(new THREE.AmbientLight(0x8090c0, 0.08));
+    const sizes = [0.55, 0.42, 0.13, 0.2, 0.16, 0.26, 0.23, 0.16, 0.16];
+    const bodies = SKYCOL.map((col, i) => {
+      const mat = i === 1 ? new THREE.MeshStandardMaterial({ color: 0xe8e6dc, roughness: 1, transparent: true })
+        : new THREE.MeshBasicMaterial({ color: new THREE.Color(col), transparent: true });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(sizes[i], 32, 24), mat);
+      const glow = glowSprite(GLOW, new THREE.Color(col), sizes[i] * (i === 0 ? 9 : 4), i === 0 ? 0.9 : 0.5);
+      const stem = line([new THREE.Vector3(), new THREE.Vector3()], new THREE.Color(col), 0.25);
+      v.scene.add(mesh, glow, stem);
+      return { mesh, glow, stem, label: v.labels.add("", "") };
+    });
+    v.camera.position.set(0, 11, 27); v.controls.target.set(0, 3.2, 0);
+    v.controls.minDistance = 6; v.controls.maxDistance = 45; v.controls.maxPolarAngle = Math.PI * 0.62;
+    v.center = () => { v.camera.position.set(0, 11, 27); v.controls.target.set(0, 3.2, 0); };
+    let slowAt = -1e9, lastKey = -1;
+    const skyDay = new THREE.Color(0x4d8fd8), skyNight = new THREE.Color(0x0b1230);
+    v.update = (A) => {
+      const sky = A.sky, now = performance.now();
+      const t = Math.max(0, Math.min(1, (sky[0].alt + 12) / 18));
+      domeMat.color.copy(skyNight).lerp(skyDay, t); domeMat.opacity = 0.18 + 0.4 * t;
+      stars.material.opacity = 1 - t * 0.85;
+      if (now - slowAt > 400 || lastKey !== placeVersion) {
+        slowAt = now; lastKey = placeVersion;
+        const ep = eclGeo.attributes.position;
+        let lab = null;
+        for (let k = 0; k < EN; k++) {
+          const qq = geoEq(k * 2, 0, sky.T), h = horiz(qq.ra, qq.dec, place.lat, sky.lst), p = azalt(h.alt, h.az);
+          ep.setXYZ(k, p.x, p.y, p.z);
+          if (!lab && h.alt > 20 && h.alt < 35) lab = p;
+        }
+        ep.needsUpdate = true; ecl.computeLineDistances();
+        lEcl.show = !!lab; if (lab) lEcl.pos.copy(lab);
+        const pp = pathGeo.attributes.position, ms0 = A.ms - 12 * 3600000;
+        let best = null;
+        for (let k = 0; k < SN; k++) {
+          const s = sunInfo(ms0 + k * 900000), h = horiz(s.ra, s.dec, place.lat, norm360(s.gmst + place.lon)), p = azalt(h.alt, h.az, R * 0.995);
+          pp.setXYZ(k, p.x, p.y, p.z);
+          if (h.alt > 0 && (!best || h.alt > best.alt)) best = { alt: h.alt, p };
+        }
+        pp.needsUpdate = true;
+        lPath.show = !!best && Math.abs(best.alt - sky[0].alt) > 8; if (best) lPath.pos.copy(best.p);
+      }
+      light.position.copy(azalt(sky[0].alt, sky[0].az, 1));
+      sky.forEach((b, i) => {
+        const o = bodies[i], p = azalt(b.alt, b.az), up = b.alt > 0;
+        o.mesh.position.copy(p); o.glow.position.copy(p);
+        o.mesh.material.opacity = up ? 1 : 0.35; o.glow.material.opacity = up ? (i === 0 ? 0.9 : 0.5) : 0.12;
+        const sp = o.stem.geometry.attributes.position; sp.setXYZ(0, p.x, p.y, p.z); sp.setXYZ(1, p.x, 0, p.z); sp.needsUpdate = true;
+        o.stem.material.opacity = up ? 0.22 : 0.08;
+        o.label.pos.copy(p);
+        o.label.set(`${b.name} ${b.alt >= 0 ? "" : "−"}${Math.abs(b.alt).toFixed(0)}°`);
+        o.label.cls(up ? (i === 0 ? "sol" : "") : "dim");
+      });
+    };
+    return v;
+  }
+
+  /* ---- Solar System ---- */
+  function planetTexture(name) {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 256; const g = c.getContext("2d");
+    const bands = {
+      Mercury: ["#8f8a84", "#a9a39b", "#7d7872"], Venus: ["#e7cf98", "#d9bb7e", "#f0dcae"], Mars: ["#c1592f", "#a8492a", "#d06a3c"],
+      Jupiter: ["#e9dcc4", "#c99a6a", "#efe3cc", "#b98656", "#e2c8a0", "#a7764e"], Saturn: ["#ead8a4", "#d6bd83", "#f0e2b8", "#c9ad75"],
+      Uranus: ["#a6e3ea", "#98d8e0"], Neptune: ["#4c6ee6", "#3d5bd0", "#5b7ef0"]
+    }[name];
+    const n = name === "Jupiter" ? 18 : name === "Saturn" ? 14 : 6;
+    for (let i = 0; i < n; i++) { g.fillStyle = bands[i % bands.length]; g.fillRect(0, (i / n) * 256, 512, 256 / n + 1); }
+    for (let i = 0; i < 1400; i++) {
+      g.fillStyle = `rgba(${Math.random() < 0.5 ? "0,0,0" : "255,255,255"},${Math.random() * 0.06})`;
+      const y = Math.random() * 256; g.fillRect(Math.random() * 512, y, 10 + Math.random() * 80, 1 + Math.random() * 3);
+    }
+    if (name === "Jupiter") { g.fillStyle = "rgba(190,90,60,0.75)"; g.beginPath(); g.ellipse(330, 165, 26, 13, 0, 0, 7); g.fill(); }
+    return new THREE.CanvasTexture(c);
+  }
+  function buildSolarView() {
+    const v = makeView(40, 0.05, 5000);
+    v.scene.add(starfield(4000, 1500));
+    v.scene.add(new THREE.PointLight(0xfff2dd, 2.0, 0, 0));
+    v.scene.add(new THREE.AmbientLight(0x6070a0, 0.07));
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(0.42, 48, 32), new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+    v.scene.add(sun, glowSprite(GLOW, 0xffb84d, 4.2, 0.95), glowSprite(GLOW, 0xff8a2a, 9, 0.35));
+    const lSun = v.labels.add("Sun", "sol"); lSun.pos.set(0, 0.55, 0);
+    const SIZE = [0.07, 0.12, 0.13, 0.095, 0.34, 0.29, 0.2, 0.2];
+    const planets = PLANETS.map((p, i) => {
+      let mat;
+      if (p[0] === "Earth") mat = new THREE.MeshStandardMaterial({ map: earthTex.day, roughness: 0.9 });
+      else mat = new THREE.MeshStandardMaterial({ map: planetTexture(p[0]), roughness: 1 });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(SIZE[i], 48, 32), mat);
+      const holder = new THREE.Group(); holder.add(mesh); v.scene.add(holder);
+      if (p[0] === "Saturn") {
+        const rc = document.createElement("canvas"); rc.width = 256; rc.height = 4; const rg = rc.getContext("2d");
+        for (let x = 0; x < 256; x++) { const a = x < 30 ? 0 : (0.25 + 0.6 * Math.abs(Math.sin(x * 0.11)) * (x > 180 && x < 196 ? 0.1 : 1)); rg.fillStyle = `rgba(230,210,160,${a})`; rg.fillRect(x, 0, 1, 4); }
+        const geo = new THREE.RingGeometry(SIZE[i] * 1.25, SIZE[i] * 2.3, 96);
+        const pos = geo.attributes.position, uv = geo.attributes.uv, v3 = new THREE.Vector3();
+        for (let k = 0; k < pos.count; k++) { v3.fromBufferAttribute(pos, k); uv.setXY(k, (v3.length() - SIZE[i] * 1.25) / (SIZE[i] * 1.05), 0.5); }
+        const ring = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(rc), side: THREE.DoubleSide, transparent: true, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2 + 26.7 * D2R; holder.add(ring);
+      }
+      if (p[0] === "Earth") {
+        mesh.rotation.order = "XYZ";
+        holder.add(glowSprite(GLOW, 0x72b6ff, 0.75, 0.6));
+      }
+      const orbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 257 }, () => new THREE.Vector3())),
+        new THREE.LineBasicMaterial({ color: p[0] === "Earth" ? 0x72b6ff : 0x8d90b2, transparent: true, opacity: p[0] === "Earth" ? 0.7 : 0.3, depthWrite: false }));
+      v.scene.add(orbit);
+      const label = v.labels.add(p[0] === "Earth" ? "Earth · you are here" : p[0], p[0] === "Earth" ? "you" : "");
+      return { p, mesh, holder, orbit, label, size: SIZE[i] };
+    });
+    // vernal equinox direction
+    const lEq = v.labels.add("♈ March equinox direction", "dim");
+    const eqLine = line([new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0)], 0x8d90b2, 0.25, 0.2); v.scene.add(eqLine);
+    const tilt = new THREE.Group(); // Earth's axial tilt in ecliptic frame
+    const fit = () => {
+      const far = scope === "inner" ? 11 : 30;
+      v.camera.position.set(0, far * 0.62, far); v.controls.target.set(0, 0, 0);
+      v.controls.maxDistance = far * 3; v.controls.minDistance = 1.2;
+    };
+    fit(); v.center = fit; v.onScope = fit;
+    const toThree = (P, f) => { const r = Math.hypot(P.x, P.y, P.z), s = r ? f(r) / r : 0; return new THREE.Vector3(P.x * s, P.z * s, -P.y * s); };
+    let lastScope = null, orbitAt = -1e9;
+    v.update = (A) => {
+      const f = scope === "inner" ? (r => r * 4) : (r => Math.sqrt(r) * 4.2);
+      planets.forEach((o, i) => {
+        const hidden = scope === "inner" && i > 3;
+        o.holder.visible = !hidden; o.orbit.visible = !hidden; o.label.show = !hidden;
+        if (hidden) return;
+        const st = A.states[i];
+        o.holder.position.copy(toThree(st, f));
+        o.label.pos.copy(o.holder.position).add(new THREE.Vector3(0, o.size + 0.1, 0));
+        if (lastScope !== scope || performance.now() - orbitAt > 2000) {
+          const op = o.orbit.geometry.attributes.position;
+          for (let k = 0; k <= 256; k++) { const q = toThree(posFromE(st.el, k / 256 * Math.PI * 2), f); op.setXYZ(k, q.x, q.y, q.z); }
+          op.needsUpdate = true;
+        }
+        if (o.p[0] === "Earth") {
+          const eps = (23.439 - 0.013 * A.T) * D2R;
+          o.mesh.rotation.set(eps, 0, 0);
+          o.mesh.rotateY(A.sun.gmst * D2R);
+        } else o.mesh.rotation.y += 0.002;
+      });
+      if (lastScope !== scope || performance.now() - orbitAt > 2000) orbitAt = performance.now();
+      const L = scope === "inner" ? 7.5 : 24;
+      const ep = eqLine.geometry.attributes.position; ep.setXYZ(1, L, 0, 0); ep.needsUpdate = true; eqLine.computeLineDistances();
+      lEq.pos.set(L, 0, 0);
+      lastScope = scope;
+    };
+    return v;
+  }
+
+  /* ---- Milky Way ---- */
+  function buildGalaxyView() {
+    const v = makeView(45, 0.1, 5000);
+    v.scene.add(starfield(2500, 1500));
+    const B = Math.tan(12 * D2R), THSUN = Math.PI / 2, RSUN = 8.18;
+    const armTheta = (k, r) => THSUN + k * Math.PI / 2 - Math.log(r / 7) / B;
+    const gauss = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 0.816;
+    const N = 90000, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+    let n = 0;
+    const put = (x, y, z, r, g, b) => { if (n >= N) return; pos.set([x, y, z], n * 3); col.set([r, g, b], n * 3); n++; };
+    for (let i = 0; i < 16000; i++) { // disk
+      const r = Math.abs(gauss()) * 5.5 + 0.3, a = Math.random() * Math.PI * 2; if (r > 16) continue;
+      put(Math.cos(a) * r, gauss() * 0.18 * Math.exp(-r / 12), Math.sin(a) * r, 0.32, 0.3, 0.42);
+    }
+    [0, 1, 2, 3].forEach(k => {
+      const major = k === 1 || k === 3;
+      for (let i = 0; i < (major ? 19000 : 11000); i++) {
+        const r = 3.0 + Math.pow(Math.random(), 0.85) * 12.5, th = armTheta(k, r) + gauss() * 0.055, rr = r + gauss() * 0.32;
+        const young = Math.random() < 0.12;
+        const c = young ? [0.55, 0.72, 1.0] : Math.random() < 0.15 ? [1.0, 0.62, 0.62] : [0.78, 0.76, 0.92];
+        put(Math.cos(th) * rr, gauss() * 0.1, Math.sin(th) * rr, ...c);
+      }
+    });
+    for (let i = 0; i < 2600; i++) { // Orion Spur
+      const t = Math.random(), r = 7.3 + t * 2.1, th = THSUN + 0.32 - t * 0.55 + gauss() * 0.03;
+      put(Math.cos(th) * (r + gauss() * 0.18), gauss() * 0.08, Math.sin(th) * (r + gauss() * 0.18), 0.75, 0.8, 1.0);
+    }
+    const barA = -27 * D2R;
+    for (let i = 0; i < 9000; i++) { // bar
+      const u = gauss() * 2.2, w = gauss() * 0.6;
+      put(u * Math.cos(barA) - w * Math.sin(barA), gauss() * 0.35, u * Math.sin(barA) + w * Math.cos(barA), 1.0, 0.78, 0.5);
+    }
+    for (let i = 0; i < 9000; i++) { // bulge
+      const r = Math.abs(gauss()) * 1.0, u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      put(r * s * Math.cos(a), r * u * 0.7, r * s * Math.sin(a), 1.0, 0.82, 0.58);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos.subarray(0, n * 3), 3));
+    g.setAttribute("color", new THREE.BufferAttribute(col.subarray(0, n * 3), 3));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.11, sizeAttenuation: true, vertexColors: true, map: DOT, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+    v.scene.add(pts);
+    v.scene.add(glowSprite(GLOW, 0xffd29a, 9, 0.8));
+    v.scene.add(glowSprite(GLOW, 0x8a7cff, 34, 0.12));
+    const sunPos = new THREE.Vector3(Math.cos(THSUN) * RSUN, 0.02, Math.sin(THSUN) * RSUN);
+    const sunMark = glowSprite(DOT, 0xffd27a, 0.9); sunMark.position.copy(sunPos); v.scene.add(sunMark);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.4, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.copy(sunPos); v.scene.add(ring);
+    const orbitPts = []; for (let a = 0; a <= 360; a += 2) orbitPts.push(new THREE.Vector3(Math.cos(a * D2R) * RSUN, 0, Math.sin(a * D2R) * RSUN));
+    v.scene.add(line(orbitPts, 0xf3b649, 0.35, 0.25));
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 16), new THREE.MeshBasicMaterial({ color: 0xf3b649 }));
+    arrow.position.set(sunPos.x - 1.1, 0.02, sunPos.z); arrow.rotation.z = Math.PI / 2; v.scene.add(arrow);
+    const lSun = v.labels.add("Sun · you are here", "you"); lSun.pos.copy(sunPos).add(new THREE.Vector3(0.2, 0.3, 0));
+    const lSpd = v.labels.add("230 km/s", "sol"); lSpd.pos.set(sunPos.x - 1.9, -0.9, sunPos.z + 0.4);
+    const lC = v.labels.add("Galactic center · Sagittarius A*", "big"); lC.pos.set(0, 1.4, 0);
+    [["Sagittarius–Carina Arm", 0, 12], ["Perseus Arm", 1, 12.5], ["Norma Arm", 2, 6], ["Scutum–Centaurus Arm", 3, 12.5]].forEach(([name, k, r]) => {
+      const th = armTheta(k, r), l = v.labels.add(name, "dim"); l.pos.set(Math.cos(th) * r, 0.4, Math.sin(th) * r);
+    });
+    const fit = () => { v.camera.position.set(0, 15, 21); v.controls.target.set(0, 0, 0); };
+    fit(); v.center = fit;
+    v.controls.minDistance = 3; v.controls.maxDistance = 70;
+    v.controls.autoRotate = !reduceMotion; v.controls.autoRotateSpeed = 0.25;
+    v.update = () => { ring.scale.setScalar(reduceMotion ? 1 : 1 + 0.25 * Math.sin(performance.now() / 420)); };
+    return v;
+  }
+
+  if (renderer) {
+    renderer.setPixelRatio(DPR);
+    renderer.setClearColor(0x05060f, 1);
+    DOT = radialTex([[0, "rgba(255,255,255,1)"], [0.25, "rgba(255,255,255,0.8)"], [1, "rgba(255,255,255,0)"]], 64);
+    GLOW = radialTex([[0, "rgba(255,255,255,0.9)"], [0.15, "rgba(255,255,255,0.45)"], [0.45, "rgba(255,255,255,0.1)"], [1, "rgba(255,255,255,0)"]], 256);
+    views.earth = buildEarthView();
+    views.sky = buildSkyView();
+    views.solar = buildSolarView();
+    views.galaxy = buildGalaxyView();
+    const resize = () => {
+      const r = stage.getBoundingClientRect(); if (!r.width) return;
+      renderer.setSize(r.width, r.height, false);
+      Object.values(views).forEach(v => { v.camera.aspect = r.width / r.height; v.camera.updateProjectionMatrix(); });
+    };
+    new ResizeObserver(resize).observe(stage); resize();
+    window.__onPlace = () => {
+      Object.values(views).forEach(v => v.onPlace && v.onPlace());
+      if (youMarker) youMarker.setLatLng([place.lat, place.lon]);
+      if (map && view === "map") map.flyTo([place.lat, place.lon], 16, { duration: 1.2 });
+      $("caption").innerHTML = CAPTIONS[view]();
+    };
+  }
+  $("recenter").addEventListener("click", () => {
+    if (view === "map") { map && map.flyTo([place.lat, place.lon], 17, { duration: 1 }); return; }
+    views[view] && views[view].center && views[view].center();
+  });
+
+  /* ================= close-up: satellite and aerial photos ================= */
+  const CFG = Object.assign({ imageryKey: "", preview: false }, window.ORBITUDE_CONFIG || {});
+  const mapEl = $("map"), mapNote = $("mapnote");
+  let map = null, youMarker = null, labelLayer = null, labelsOn = store.get("orbitude-labels") !== false, tileOK = 0, tileBad = 0;
+  const esri = path => CFG.imageryKey
+    ? `https://ibasemaps-api.arcgis.com/arcgis/rest/services/${path}/MapServer/tile/{z}/{y}/{x}?token=${encodeURIComponent(CFG.imageryKey)}`
+    : `https://server.arcgisonline.com/ArcGIS/rest/services/${path}/MapServer/tile/{z}/{y}/{x}`;
+  function showMapNote() {
+    mapNote.innerHTML = CFG.preview
+      ? "<b>Satellite close-ups work in the Orbitude app</b><p>This Claude preview blocks outside images, so the photos can't load here. Open the installed app or web app on your phone with an internet connection to zoom down to streets, buildings, cars and boats.</p>"
+      : "<b>Satellite photos couldn't load</b><p>Close-ups need an internet connection. Check your connection and try again; the rest of Orbitude keeps working offline.</p>";
+    mapNote.hidden = false;
+  }
+  function zoomInfo() {
+    if (!map || view !== "map") return;
+    const z = map.getZoom(), c = map.getCenter();
+    const mpp = 156543.03392 * Math.cos(c.lat * D2R) / Math.pow(2, Math.min(z, 19));
+    $("hint").textContent = z >= 19
+      ? `Sharpest detail available · 1 pixel ≈ ${mpp < 1 ? Math.round(mpp * 100) + " cm" : mpp.toFixed(1) + " m"}`
+      : `Pinch or scroll to zoom · 1 pixel ≈ ${mpp < 1 ? Math.round(mpp * 100) + " cm" : mpp < 1000 ? Math.round(mpp) + " m" : nf0.format(mpp / 1000) + " km"}`;
+  }
+  function ensureMap() {
+    if (map) return map;
+    if (!window.L) { showMapNote(); return null; }
+    map = L.map(mapEl, { zoomControl: false, attributionControl: false, worldCopyJump: true, minZoom: 2, maxZoom: 19, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 100, maxBoundsViscosity: 1 });
+    const imagery = L.tileLayer(esri("World_Imagery"), { maxNativeZoom: 19, maxZoom: 19, keepBuffer: 3,
+      attribution: 'Imagery © <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community' });
+    imagery.on("tileload", () => { tileOK++; mapNote.hidden = true; });
+    imagery.on("tileerror", () => { tileBad++; if (tileBad >= 3 && tileOK === 0) showMapNote(); });
+    imagery.addTo(map);
+    labelLayer = L.layerGroup([
+      L.tileLayer(esri("Reference/World_Transportation"), { maxNativeZoom: 19, maxZoom: 19, opacity: 0.7 }),
+      L.tileLayer(esri("Reference/World_Boundaries_and_Places"), { maxNativeZoom: 19, maxZoom: 19 })
+    ]);
+    if (labelsOn) labelLayer.addTo(map);
+    L.control.attribution({ position: "topleft", prefix: '<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>' }).addTo(map);
+    L.control.zoom({ position: "topright" }).addTo(map);
+    L.control.scale({ metric: true, imperial: false, position: "bottomleft", maxWidth: 140 }).addTo(map);
+    youMarker = L.marker([place.lat, place.lon], { icon: L.divIcon({ className: "you-pin", html: "<span></span>", iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false, keyboard: false }).addTo(map);
+    map.setView([place.lat, place.lon], 16);
+    map.on("zoomend", () => {
+      if (view === "map" && map.getZoom() <= 3) { const c = map.getCenter(); toGlobe(c.lat, c.lng); }
+      zoomInfo();
+    });
+    map.on("moveend", zoomInfo);
+    return map;
+  }
+  function toMap(lat, lon, z) {
+    setView("map");
+    if (!ensureMap()) return;
+    map.invalidateSize();
+    map.setView([lat, lon], 4.5, { animate: false });
+    map.flyTo([lat, lon], z, { duration: 1.2 });
+  }
+  function toGlobe(lat, lon) {
+    setView("earth");
+    if (views.earth) views.earth.flyTo(lat, lon, 2.0);
+  }
+  $("zoomin").addEventListener("click", () => toMap(place.lat, place.lon, 17));
+  $("maplabels").addEventListener("click", () => {
+    labelsOn = !labelsOn; store.set("orbitude-labels", labelsOn);
+    $("maplabels").setAttribute("aria-pressed", String(labelsOn)); $("maplabels").textContent = labelsOn ? "Labels on" : "Labels off";
+    if (map && labelLayer) labelsOn ? labelLayer.addTo(map) : labelLayer.remove();
+  });
+  $("maplabels").setAttribute("aria-pressed", String(labelsOn)); $("maplabels").textContent = labelsOn ? "Labels on" : "Labels off";
+
+  const CAPTIONS = {
+    map: () => `Satellite and aerial photos of ${place.label.split(",")[0]} and anywhere else on Earth. In most cities the sharpest level shows about 30 cm per pixel: buildings, roads, cars, boats, pools and trees are clear, but people are only a dot or two. The photos are usually from the last few years, not live. Zoom far out to return to the globe.`,
+    earth: () => `A live globe lit by the real Sun. The bright side is in daylight, the dark side shows city lights, and the orange band is where the Sun is rising or setting. The white ring marks you; the gold dot is where the Sun is straight overhead right now.`,
+    sky: () => `Your horizon as a compass, with the sky as a dome above it. Everything above the ground is up in your sky now; faint bodies below the ground are on the other side of Earth. The gold arc is the Sun's path across your sky today.`,
+    solar: () => `Real planet positions for the time shown, seen from above the solar system. Earth is turned to match the real time of day, so the side facing the Sun is the side in daylight. Try 1 mo/s to watch the inner planets lap Earth.`,
+    galaxy: () => `The Sun sits about 26,700 light-years from the center, in a bridge of stars called the Orion Spur, circling once every 230 million years. The last time it was here, the first dinosaurs were appearing.`
+  };
+  function setView(v) {
+    view = v;
+    mapEl.hidden = v !== "map"; labelsRoot.hidden = v === "map";
+    if (v !== "map") mapNote.hidden = true;
+    $("zoomin").hidden = v !== "earth"; $("maplabels").hidden = v !== "map";
+    $("hint").textContent = v === "map" ? "Pinch or scroll to zoom · drag to move" : "Drag to turn · pinch or scroll to zoom";
+    if (v === "map" && ensureMap()) { setTimeout(() => { map.invalidateSize(); zoomInfo(); }, 0); if (tileBad >= 3 && tileOK === 0) showMapNote(); }
+    tabs.forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+    $("scope").hidden = v !== "solar";
+    Object.entries(views).forEach(([k, vv]) => { vv.controls.enabled = k === v; vv.labels.root.hidden = k !== v; });
+    $("caption").innerHTML = CAPTIONS[v]();
+    store.set("cosmic-view-v2", v);
+  }
+  tabs.forEach(t => t.addEventListener("click", () => setView(t.dataset.view)));
+  $("scope").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    scope = b.dataset.scope;
+    [...$("scope").children].forEach(x => x.setAttribute("aria-pressed", String(x.dataset.scope === scope)));
+    views.solar && views.solar.onScope();
+  });
+  setView(view);
+
+  /* ================= main loop ================= */
+  let textAt = 0;
+  function frame(now) {
+    const dtMs = Math.min(100, now - lastReal); lastReal = now;
+    simOffset += (speed - 1) * dtMs;
+    const ms = Date.now() + simOffset, date = new Date(ms);
+    const T = (jd(ms) - 2451545.0) / 36525;
+    const sun = sunInfo(ms);
+    const states = PLANETS.map(p => ({ p, ...planetState(p, T) }));
+    const sky = skyAt(ms, place.lat, place.lon, states);
+    const E = states[2];
+    const A = { ms, T, sun, states, sky };
+
+    if (now - textAt > 100) {
+      textAt = now;
+      $("utc").textContent = fmtDate(new Date());
+      const ahead = Math.abs(simOffset) > 2000, st = $("simtime");
+      st.classList.toggle("ahead", ahead);
+      st.textContent = ahead ? `Showing ${fmtDate(date)} UTC (${simOffset > 0 ? "+" : "−"}${nf1.format(Math.abs(simOffset) / 86400000)} days from now)` : "Showing the present moment";
+      const alt = sky[0].alt, solarH = norm360(sun.gmst + place.lon - sun.ra + 180) / 15;
+      $("a-place").textContent = "Your spot · " + place.label.split(",")[0];
+      $("a-place-sub").textContent = `${place.label} · ${Math.abs(place.lat).toFixed(3)}° ${place.lat >= 0 ? "N" : "S"}, ${Math.abs(place.lon).toFixed(3)}° ${place.lon >= 0 ? "E" : "W"}`;
+      $("a-solar").textContent = `${pad(Math.floor(solarH))}:${pad(Math.floor((solarH % 1) * 60))}`;
+      $("a-alt").textContent = `${alt >= 0 ? "" : "−"}${Math.abs(alt).toFixed(1)}° ${alt > 0.8 ? "· daytime" : alt > -6 ? "· twilight" : alt > -18 ? "· dusk/dawn dark" : "· night"}`;
+      const spin = 0.4651 * Math.cos(place.lat * D2R);
+      $("a-spin").textContent = `${nf0.format(spin * 3600)} km/h`;
+      const distKm = E.r * AU_KM, lightS = distKm / C_KMS;
+      $("a-dist").textContent = `${nf0.format(distKm)} km (${E.r.toFixed(5)} AU)`;
+      $("a-light").textContent = `${Math.floor(lightS / 60)} min ${(lightS % 60).toFixed(1)} s ago`;
+      $("a-orb").textContent = `${E.v.toFixed(3)} km/s`;
+      $("a-lon").textContent = `${norm360(Math.atan2(E.y, E.x) * R2D).toFixed(3)}°`;
+      const Mdeg = E.el.M * R2D, toPeri = (360 - Mdeg) / 0.9856, sincePeri = Mdeg / 0.9856;
+      $("a-peri").textContent = sincePeri < toPeri ? `${nf1.format(sincePeri)} days ago` : `in ${nf1.format(toPeri)} days`;
+      const el = (now - openedAt) / 1000;
+      $("t-spin").textContent = fmtKm(spin * el);
+      $("t-orb").textContent = fmtKm(E.v * el);
+      $("t-gal").textContent = fmtKm(230 * el);
+      $("t-and").textContent = fmtKm(110 * el);
+      $("t-cmb").textContent = fmtKm(369.8 * el);
+    }
+    updateTable(sky, ms, now);
+
+    if (renderer && views[view]) {
+      const v = views[view];
+      v.update(A, dtMs / 1000);
+      v.controls.update();
+      renderer.render(v.scene, v.camera);
+      const r = stage.getBoundingClientRect();
+      placeLabels(v, r.width, r.height);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+<script>if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+</body>
+</html>

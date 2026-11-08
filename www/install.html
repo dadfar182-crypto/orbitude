@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Get Orbitude</title>
+<meta name="theme-color" content="#0b0920">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root { --bg: #0b0920; --panel: #151236; --line: #2a2658; --ink: #f2f0fb; --dim: #a5a3c8; --sol: #f3b649; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at 50% 0%, #2a1c5e, var(--bg) 60%) fixed; color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: max(28px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+main { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; text-align: center; }
+img.icon { width: 112px; height: 112px; border-radius: 26px; margin: 0 auto; box-shadow: 0 12px 40px rgba(80, 60, 200, .45); }
+h1 { font: 400 44px/1 Georgia, "Times New Roman", serif; margin: 6px 0 0; }
+.tag { color: var(--dim); margin: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 18px; }
+ol { margin: 0; padding-left: 22px; color: var(--dim); }
+ol b { color: var(--ink); }
+a.big { display: block; text-align: center; text-decoration: none; background: var(--sol); color: #1a1204; font-weight: 600; padding: 14px; border-radius: 12px; font-size: 17px; }
+a.big.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+a:focus-visible { outline: 2px solid var(--sol); outline-offset: 3px; }
+.share { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; }
+small { color: var(--dim); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <img class="icon" src="icons/icon-512.png" alt="Orbitude icon">
+  <h1>Orbitude</h1>
+  <p class="tag">Your place in the universe, live.</p>
+
+  <section class="card" id="iphone">
+    <h2>iPhone or iPad</h2>
+    <ol>
+      <li>Open this page in <b>Safari</b>.</li>
+      <li>Tap <b>Share</b> <svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg> at the bottom.</li>
+      <li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    </ol>
+  </section>
+
+  <section class="card" id="android">
+    <h2>Android</h2>
+    <a class="big" href="../../releases/latest/download/Orbitude.apk" id="apk">Download Orbitude for Android</a>
+    <ol>
+      <li>Tap the button, then open the downloaded file.</li>
+      <li>If your phone asks, tap <b>Settings</b> and allow installing from this source, then go back.</li>
+      <li>Tap <b>Install</b>.</li>
+    </ol>
+  </section>
+
+  <a class="big alt" href="index.html">Open Orbitude in the browser</a>
+  <small>Free · no account · no ads. Satellite close-ups need internet; everything else works offline.</small>
+</main>
+<script>
+  // Point the Android button at this project's GitHub release, and show the right card first.
+  (function () {
+    var m = location.hostname.match(/^([^.]+)\.github\.io$/), repo = location.pathname.split("/")[1];
+    if (m && repo) document.getElementById("apk").href = "https://github.com/" + m[1] + "/" + repo + "/releases/latest/download/Orbitude.apk";
+    var ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) document.getElementById("android").hidden = true;
+    else if (/Android/.test(ua)) document.getElementById("iphone").hidden = true;
+  })();
+</script>
+</body>
+</html>
